@@ -47,10 +47,16 @@ def init_user(data: UserRegister):
     user = cursor.fetchone()
     
     if not user:
-        cursor.execute("INSERT INTO users (user_id, username, bronze_points, referred_by) VALUES (?, ?, 1, ?)",
-                       (data.user_id, data.username, data.referrer_id))
+        # ثبت کاربر جدید با 1 امتیاز برنز
+        cursor.execute("""
+            INSERT INTO users (user_id, username, bronze_points, gold_points, diamond_points, deposit_status, referred_by) 
+            VALUES (?, ?, 1, 0, 0, 'none', ?)
+        """, (data.user_id, data.username, data.referrer_id))
+        
+        # افزایش آمار کل برنز شبکه
         cursor.execute("UPDATE global_stats SET total_bronze_issued = total_bronze_issued + 1 WHERE id = 1")
         
+        # ثبت پاداش رفرال (امتیاز طلا برای معرف)
         if data.referrer_id and data.referrer_id != data.user_id:
             cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (data.referrer_id,))
             if cursor.fetchone():
@@ -61,6 +67,7 @@ def init_user(data: UserRegister):
         cursor.execute("SELECT * FROM users WHERE user_id = ?", (data.user_id,))
         user = cursor.fetchone()
 
+    # دریافت آمار کل شبکه
     cursor.execute("SELECT * FROM global_stats WHERE id = 1")
     stats = cursor.fetchone()
     
@@ -88,6 +95,7 @@ def update_wallet(data: WalletUpdate):
 def deposit_diamond(data: DiamondDeposit):
     conn = database.get_db()
     cursor = conn.cursor()
+    # ثبت وضعیت در انتظار و ذخیره هش تراکنش در صورت نیاز
     cursor.execute("UPDATE users SET deposit_status = 'pending' WHERE user_id = ?", (data.user_id,))
     conn.commit()
     conn.close()
