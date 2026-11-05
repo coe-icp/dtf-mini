@@ -8,12 +8,53 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen p-4">
+
+    <!-- پاپ‌آپ اخطار و سلب مسئولیت (قبل از ورود به مینی‌اپ) -->
+    <div id="disclaimer-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <h3 class="text-amber-400 font-bold text-center text-sm">⚠️ اطلاعیه مهم و سلب مسئولیت</h3>
+            <p class="text-[11px] text-slate-300 leading-relaxed text-justify">
+                این مینی‌اپ به هیچ عنوان توصیه مالی نیست و مشارکت در طرح حمایت از پروژه به هیچ عنوان تضمین بازگشت سرمایه ندارد. این پلتفرم در برابر نوسانات شدید قیمتی هیچ تضمینی به مخاطبان نخواهد داد و مسئولیت هر گونه ضرر مالی به عهده کاربر است.
+            </p>
+            <div class="flex items-center space-x-2 space-x-reverse pt-2">
+                <input type="checkbox" id="accept-checkbox" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+                <label for="accept-checkbox" class="text-[11px] text-slate-300 cursor-pointer">شرایط و اخطارهای فوق را مطالعه کرده و می‌پذیرم.</label>
+            </div>
+            <button onclick="closeDisclaimer()" id="accept-btn" disabled class="w-full bg-slate-800 text-slate-500 font-bold py-2.5 rounded-xl text-xs transition-all cursor-not-allowed">
+                تایید و ورود به مینی‌اپ
+            </button>
+        </div>
+    </div>
+
     <div class="max-w-md mx-auto space-y-6">
         
         <!-- هدر -->
         <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
             <span class="text-amber-400 font-bold">پلتفرم DTF</span>
             <span id="username-badge" class="text-sm bg-slate-800 px-3 py-1 rounded-full text-slate-300">در حال بارگذاری...</span>
+        </div>
+
+        <!-- باکس اطلاعات رسمی و توکنومیکس (قبل از بیلبورد) -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <h2 class="text-xs font-semibold text-amber-400 text-center">📋 اطلاعات رسمی و توکنومیکس پروژه</h2>
+            <p class="text-[11px] text-slate-300 leading-relaxed text-justify">
+                شما با مشارکت و دریافت هر سطح از امتیاز میتوانید به چنل رسمی همان سطح دعوت شوید. قیمت ورود توکن DTF به بازار 0.0000666 خواهد بود. حداکثر 100 میلیون واحد توکن DTF وجود داره. ساختار تراکنش 3% مالیات زمان خرید، 0% مالیات زمان فروش (فارغ از کارمزد دکس). 2/3 مالیات سوزانده و 1/3 مالیات با کمک استیک بین هولدرها توزیع خواهد شد.
+            </p>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60 space-y-1.5 text-[11px] text-slate-300">
+                <div class="font-bold text-amber-300 mb-1">توزیع توکنومیکس:</div>
+                <div>• 90% توکن در سه جفت معاملاتی اصلی (BTC, USDT, DOTO) با قیمت پایه 0.0000666 دلار در اختیار جامعه قرار خواهد گرفت.</div>
+                <div>• 3% سهم تیم توسعه</div>
+                <div>• 3% خزانه (حمایت مالی از شرکای تجاری)</div>
+                <div>• 2% بین امتیازهای طلا</div>
+                <div>• 1% بین 1000 امتیاز الماس</div>
+                <div>• 1% بین امتیاز های برنز</div>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60 space-y-1 text-[11px] text-slate-300">
+                <div class="font-bold text-cyan-300 mb-1">مراحل انتشار کانترکت در دکس اکوسیستم DotOne:</div>
+                <div>🥇 سطح اول (کانترکت در چنل الماس)</div>
+                <div>🥈 سطح دوم (کانترکت در چنل طلا)</div>
+                <div>🥉 سطح سوم (کانترکت در چنل برنز)</div>
+            </div>
         </div>
 
         <!-- بیلبورد شفاف‌سازی کل شبکه -->
@@ -74,10 +115,18 @@
         <!-- مشارکت در طرح حمایتی الماس -->
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
             <h2 class="text-xs font-semibold text-slate-400">💎 مشارکت در طرح حمایتی الماس</h2>
-            <p class="text-[11px] text-slate-400 leading-relaxed">واریز 6 تتر (USDT) به آدرس زیر:</p>
-            <div class="bg-slate-950 p-2 rounded-xl text-[10px] text-amber-300 font-mono text-center break-all border border-slate-800">
-                0x57365d61e63972d9Ce11b91e3CD8D29605f8a792
+            <p class="text-[11px] text-slate-400 leading-relaxed">واریز 6 تتر (USDT) به آدرس زیر (روی شبکه BEP20 / بایننس اسمارت چین):</p>
+            
+            <!-- باکس آدرس همراه با دکمه کپی -->
+            <div class="flex items-center justify-between bg-slate-950 p-2 rounded-xl border border-slate-800 gap-2">
+                <div id="wallet-address-text" class="text-[10px] text-amber-300 font-mono break-all select-all">
+                    0x57365d61e63972d9Ce11b91e3CD8D29605f8a792
+                </div>
+                <button onclick="copyWalletAddress()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shrink-0">
+                    کپی
+                </button>
             </div>
+
             <input type="text" id="txid-input" placeholder="کد تراکنش یا هش (TXID) را وارد کنید" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-400">
             <button onclick="submitDiamond()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition-all">ارسال رسید جهت تایید ادمین</button>
             <div id="deposit-status-text" class="text-[11px] text-center text-slate-400 mt-1"></div>
@@ -86,7 +135,6 @@
 
     </div>
 
-    <!-- بارگذاری صحیح فایل app.js از طریق مسیر StaticFiles -->
     <script src="/static/app.js"></script>
 </body>
 </html>
