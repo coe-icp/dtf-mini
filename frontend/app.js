@@ -1,23 +1,24 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// کنترل چک‌باکس پاپ‌آپ اخطار
-const checkbox = document.getElementById('accept-checkbox');
-const acceptBtn = document.getElementById('accept-btn');
-
-checkbox.addEventListener('change', function() {
-    if (this.checked) {
+// تابع مستقیم برای مدیریت فعال شدن دکمه با تیک زدن
+function toggleAccept() {
+    const checkbox = document.getElementById('accept-checkbox');
+    const acceptBtn = document.getElementById('accept-btn');
+    
+    if (checkbox.checked) {
         acceptBtn.disabled = false;
-        acceptBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+        acceptBtn.classList.remove('bg-slate-850', 'bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
         acceptBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'text-slate-950', 'cursor-pointer');
     } else {
         acceptBtn.disabled = true;
         acceptBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'text-slate-950', 'cursor-pointer');
         acceptBtn.classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
     }
-});
+}
 
 function closeDisclaimer() {
+    const checkbox = document.getElementById('accept-checkbox');
     if (!checkbox.checked) return;
     document.getElementById('disclaimer-modal').style.display = 'none';
 }
@@ -116,7 +117,6 @@ function copyRefLink() {
     alert("لینک دعوت شما کپی شد!");
 }
 
-// تابع جدید برای کپی کردن آدرس کیف پول مقصد واریز
 function copyWalletAddress() {
     const address = document.getElementById('wallet-address-text').innerText.trim();
     navigator.clipboard.writeText(address);
