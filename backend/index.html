@@ -3,103 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مینی‌اپ تامین مالی DTF</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>DTF Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased pb-20">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen p-4">
+    <div class="max-w-md mx-auto space-y-6">
+        
+        <!-- هدر -->
+        <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
+            <span class="text-amber-400 font-bold">پلتفرم DTF</span>
+            <span id="username-badge" class="text-sm bg-slate-800 px-3 py-1 rounded-full text-slate-300">در حال بارگذاری...</span>
+        </div>
 
-    <!-- هدر مینیمال -->
-    <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 backdrop-blur">
-        <h1 class="font-bold text-lg text-amber-400">پلتفرم DTF</h1>
-        <span id="username-badge" class="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-300">بارگذاری...</span>
-    </header>
-
-    <main class="p-4 space-y-6 max-w-md mx-auto">
-
-        <!-- بخش بیلبورد شفاف‌سازی شبکه -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
-            <h2 class="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-1">📊 بیلبورد شفاف‌سازی کل شبکه</h2>
+        <!-- بیلبرد شفاف‌سازی کل شبکه -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400 text-center">📊 بیلبورد شفاف‌سازی کل شبکه</h2>
             <div class="grid grid-cols-3 gap-2 text-center">
-                <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
-                    <span class="text-[10px] text-amber-600 block">کل برنز شبکه</span>
-                    <span id="global-bronze" class="text-sm font-bold text-amber-500">0</span>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60">
+                    <div class="text-[10px] text-slate-500 mb-1">کل الماس شبکه</div>
+                    <div id="global-diamond" class="text-sm font-bold text-cyan-400">0</div>
                 </div>
-                <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
-                    <span class="text-[10px] text-yellow-500 block">کل طلای شبکه</span>
-                    <span id="global-gold" class="text-sm font-bold text-yellow-400">0</span>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60">
+                    <div class="text-[10px] text-slate-500 mb-1">کل طلای شبکه</div>
+                    <div id="global-gold" class="text-sm font-bold text-amber-400">0</div>
                 </div>
-                <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
-                    <span class="text-[10px] text-cyan-500 block">کل الماس شبکه</span>
-                    <span id="global-diamond" class="text-sm font-bold text-cyan-400">0</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- کارت دارایی‌های من -->
-        <section class="bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-xl">
-            <h2 class="text-sm font-bold text-slate-200 mb-4">🏆 دارایی‌ها و امتیازهای من</h2>
-            <div class="grid grid-cols-3 gap-3 mb-4 text-center">
-                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                    <span class="text-xs text-amber-500 block mb-1">برنز</span>
-                    <span id="my-bronze" class="text-lg font-black">1</span>
-                </div>
-                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                    <span class="text-xs text-yellow-400 block mb-1">طلا</span>
-                    <span id="my-gold" class="text-lg font-black">0</span>
-                </div>
-                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                    <span class="text-xs text-cyan-400 block mb-1">الماس</span>
-                    <span id="my-diamond" class="text-lg font-black">0</span>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60">
+                    <div class="text-[10px] text-slate-500 mb-1">کل برنز شبکه</div>
+                    <div id="global-bronze" class="text-sm font-bold text-orange-400">0</div>
                 </div>
             </div>
+        </div>
 
-            <!-- وضعیت کانال‌ها و دکمه‌های دسترسی -->
-            <div id="channels-box" class="space-y-2 pt-2 border-t border-slate-800">
-                <a id="btn-bronze" href="#" target="_blank" class="hidden w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-center text-xs block transition">ورود به کانال برنز (تایید شده)</a>
-                <a id="btn-gold" href="#" target="_blank" class="hidden w-full py-2.5 px-4 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold rounded-xl text-center text-xs block transition">ورود به کانال اختصاصی طلا 🥇</a>
-                <a id="btn-diamond" href="#" target="_blank" class="hidden w-full py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl text-center text-xs block transition">ورود به کانال حامیان الماس 💎</a>
+        <!-- دارایی‌ها و امتیازهای من -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400 text-center">🏆 دارایی‌ها و امتیازهای من</h2>
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60">
+                    <div class="text-[10px] text-slate-500 mb-1">الماس</div>
+                    <div id="my-diamond" class="text-base font-bold text-cyan-400">0</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60">
+                    <div class="text-[10px] text-slate-500 mb-1">طلا</div>
+                    <div id="my-gold" class="text-base font-bold text-amber-400">0</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/60">
+                    <div class="text-[10px] text-slate-500 mb-1">برنز</div>
+                    <div id="my-bronze" class="text-base font-bold text-orange-400">0</div>
+                </div>
             </div>
-        </section>
+        </div>
 
-        <!-- بخش ثبت کیف پول EVM -->
-        <section id="wallet-section" class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h2 class="text-sm font-bold text-slate-200 mb-2">🔐 تکمیل پروفایل (کیف پول EVM)</h2>
-            <p class="text-xs text-slate-400 mb-3">برای دریافت ایردراپ و دسترسی به کانال برنز، آدرس متاماسک یا تراست‌ولت خود را وارد کنید:</p>
-            <div class="space-y-2">
-                <input type="text" id="wallet-input" placeholder="0x..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
-                <button onclick="saveWallet()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold rounded-xl text-xs transition">ثبت کیف پول</button>
+        <!-- تکمیل پروفایل (کیف پول EVM) -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400">🔐 تکمیل پروفایل (کیف پول EVM)</h2>
+            <p class="text-[11px] text-slate-400 leading-relaxed">برای دریافت ایردراپ و دسترسی به کانال برنز، آدرس متامسک یا تراست‌ولت خود را وارد کنید:</p>
+            <input type="text" id="wallet-input" placeholder="0x..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+            <button onclick="saveWallet()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition-all">ثبت کیف پول</button>
+            <a id="btn-bronze" href="#" target="_blank" class="hidden block text-center bg-orange-600 hover:bg-orange-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all mt-2">ورود به کانال برنز 🥉</a>
+        </div>
+
+        <!-- بخش رفرال -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400">🎁 بخش رفرال (امتیاز طلا)</h2>
+            <p class="text-[11px] text-slate-400 leading-relaxed">با دعوت دوستان خود به مینی‌اپ، به ازای هر ورود موفق امتیاز طلا کسب کنید.</p>
+            <button onclick="copyRefLink()" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-400/30 font-bold py-2.5 rounded-xl text-xs transition-all">کپی لینک اختصاصی دعوت</button>
+            <a id="btn-gold" href="#" target="_blank" class="hidden block text-center bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition-all mt-2">ورود به کانال طلا 🥇</a>
+        </div>
+
+        <!-- مشارکت در طرح حمایتی الماس -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400">💎 مشارکت در طرح حمایتی الماس</h2>
+            <p class="text-[11px] text-slate-400 leading-relaxed">واریز 6 تتر (USDT) به آدرس زیر:</p>
+            <div class="bg-slate-950 p-2 rounded-xl text-[10px] text-amber-300 font-mono text-center break-all border border-slate-800">
+                0x57365d61e63972d9Ce11b91e3CD8D29605f8a792
             </div>
-        </section>
+            <input type="text" id="txid-input" placeholder="کد تراکنش یا هش (TXID) را وارد کنید" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-400">
+            <button onclick="submitDiamond()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition-all">ارسال رسید جهت تایید ادمین</button>
+            <div id="deposit-status-text" class="text-[11px] text-center text-slate-400 mt-1"></div>
+            <a id="btn-diamond" href="#" target="_blank" class="hidden block text-center bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition-all mt-2">ورود به کانال الماس 💎</a>
+        </div>
 
-        <!-- بخش دعوت از دوستان (امتیاز طلا) -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h2 class="text-sm font-bold text-slate-200 mb-2">🥇 بخش رفرال (امتیاز طلا)</h2>
-            <p class="text-xs text-slate-400 mb-3">با دعوت دوستان خود به مینی‌اپ، به ازای هر ورود موفق امتیاز طلا کسب کنید.</p>
-            <button onclick="copyRefLink()" class="w-full py-2.5 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-bold rounded-xl text-xs transition">کپی لینک اختصاصی دعوت</button>
-        </section>
-
-        <!-- بخش طرح حمایتی الماس -->
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <h2 class="text-sm font-bold text-slate-200 mb-2">💎 مشارکت در طرح حمایتی الماس</h2>
-            <p class="text-xs text-slate-400 mb-3">واریز 6 تتر (USDT) به آدرس: <br><code class="text-[10px] text-amber-400 select-all">0x57365d61e63972d9Ce11b91e3CD8D29605f8a792</code></p>
-            <div class="space-y-2">
-                <input type="text" id="txid-input" placeholder="کد تراکنش یا TXID را وارد کنید" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
-                <button onclick="submitDiamond()" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs transition">ارسال رسید جهت تایید ادمین</button>
-                <p id="deposit-status-text" class="text-[11px] text-center text-slate-400 mt-1"></p>
-            </div>
-        </section>
-
-        <!-- سلب مسئولیت و اطلاعات توکنومیکس -->
-        <section class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 text-[11px] text-slate-400 space-y-2">
-            <h3 class="font-bold text-slate-300">⚠️ مطالعه مهم و سلب مسئولیت</h3>
-            <p>این توکن صرفاً مسیر عبور نقدینگی از بازار سنتی است و به دلیل شروع معاملات با عمق نقدینگی کم، نوسانات شدیدی خواهد داشت. هیچ‌گونه وعده سود داده نشده و این مینی‌اپ پیشنهاد سرمایه‌گذاری نیست!</p>
-            <p>• <strong>توزیع نقدینگی:</strong> ۱٪ الماس‌ها، ۲٪ کاربران طلا، ۱٪ برنز.</p>
-            <p>• تامین مالی ۶ هزار دلار برای ۳ استخر معاملاتی با قیمت پایه ۰.۰۰۰۰۶۶۶.</p>
-            <p>• مالیات خرید ۳٪ (۲/۳ سوزانده و ۱/۳ استیک)، فروش بدون مالیات.</p>
-        </section>
-
-    </main>
+    </div>
 
     <script src="app.js"></script>
 </body>
