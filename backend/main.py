@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -21,7 +22,7 @@ database.init_db()
 class UserRegister(BaseModel):
     user_id: int
     username: str
-    referrer_id: int = None
+    referrer_id: Optional[int] = None
 
 class WalletUpdate(BaseModel):
     user_id: int
@@ -31,7 +32,6 @@ class DiamondDeposit(BaseModel):
     user_id: int
     txid: str
 
-# اتصال پوشه فرانت‌اند برای بارگذاری صحیح فایل‌ها
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
 if os.path.exists(frontend_path):
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
@@ -95,7 +95,12 @@ def update_wallet(data: WalletUpdate):
 def deposit_diamond(data: DiamondDeposit):
     conn = database.get_db()
     cursor = conn.cursor()
-    cursor.execute("UPDATE users SET deposit_status = 'pending' WHERE user_id = ?", (data.user_id,))
+    cursor.execute("""
+        UPDATE users 
+        SET deposit_status = CASE WHEN deposit_status != 'approved' THEN 'pending' ELSE deposit_status END,
+            evm_wallet = COALESCE(evm_wallet, ?) 
+        WHERE user_id = ?
+    """, (data.txid, data.user_id))
     conn.commit()
     conn.close()
     return {"status": "pending"}
