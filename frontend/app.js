@@ -7,8 +7,7 @@ document.getElementById('username-badge').innerText = user.first_name;
 const urlParams = new URLSearchParams(window.location.search);
 let referrerId = urlParams.get('start') || null;
 
-// بعد از دریافت لینک از ریلی‌وی، آن را اینجا جایگزین کنید (بدون اسلش آخر)
-const API_URL = "https://YOUR_RAILWAY_URL.up.railway.app"; 
+const API_URL = "https://dtf-mini-production.up.railway.app"; 
 
 async function initApp() {
     try {
