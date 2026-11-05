@@ -4,8 +4,8 @@ tg.expand();
 const user = tg.initDataUnsafe?.user || { id: 777888999, first_name: "کاربر تستی", username: "test_user" };
 document.getElementById('username-badge').innerText = user.first_name;
 
-const urlParams = new URLSearchParams(window.location.search);
-let referrerId = urlParams.get('start') || null;
+// دریافت شناسه معرف از طریق استاندارد start_param تلگرام
+let referrerId = tg.initDataUnsafe?.start_param || null;
 
 const API_URL = "https://dtf-mini-production.up.railway.app"; 
 
@@ -92,7 +92,8 @@ async function submitDiamond() {
 }
 
 function copyRefLink() {
-    const refLink = `https://t.me/dotoflow_bot/app?start=${user.id}`;
+    // تولید لینک رفرال با فرمت استاندارد startapp
+    const refLink = `https://t.me/dotoflow_bot/app?startapp=${user.id}`;
     navigator.clipboard.writeText(refLink);
     alert("لینک دعوت شما کپی شد!");
 }
