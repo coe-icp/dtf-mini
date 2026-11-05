@@ -17,7 +17,7 @@
                 این مینی‌اپ به هیچ عنوان توصیه مالی نیست و مشارکت در طرح حمایت از پروژه به هیچ عنوان تضمین بازگشت سرمایه ندارد. این پلتفرم در برابر نوسانات شدید قیمتی هیچ تضمینی به مخاطبان نخواهد داد و مسئولیت هر گونه ضرر مالی به عهده کاربر است.
             </p>
             <div class="flex items-center space-x-2 space-x-reverse pt-2">
-                <input type="checkbox" id="accept-checkbox" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+                <input type="checkbox" id="accept-checkbox" onchange="toggleAccept()" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
                 <label for="accept-checkbox" class="text-[11px] text-slate-300 cursor-pointer">شرایط و اخطارهای فوق را مطالعه کرده و می‌پذیرم.</label>
             </div>
             <button onclick="closeDisclaimer()" id="accept-btn" disabled class="w-full bg-slate-800 text-slate-500 font-bold py-2.5 rounded-xl text-xs transition-all cursor-not-allowed">
@@ -34,7 +34,7 @@
             <span id="username-badge" class="text-sm bg-slate-800 px-3 py-1 rounded-full text-slate-300">در حال بارگذاری...</span>
         </div>
 
-        <!-- باکس اطلاعات رسمی و توکنومیکس (قبل از بیلبورد) -->
+        <!-- باکس اطلاعات رسمی و توکنومیکس -->
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
             <h2 class="text-xs font-semibold text-amber-400 text-center">📋 اطلاعات رسمی و توکنومیکس پروژه</h2>
             <p class="text-[11px] text-slate-300 leading-relaxed text-justify">
@@ -117,7 +117,6 @@
             <h2 class="text-xs font-semibold text-slate-400">💎 مشارکت در طرح حمایتی الماس</h2>
             <p class="text-[11px] text-slate-400 leading-relaxed">واریز 6 تتر (USDT) به آدرس زیر (روی شبکه BEP20 / بایننس اسمارت چین):</p>
             
-            <!-- باکس آدرس همراه با دکمه کپی -->
             <div class="flex items-center justify-between bg-slate-950 p-2 rounded-xl border border-slate-800 gap-2">
                 <div id="wallet-address-text" class="text-[10px] text-amber-300 font-mono break-all select-all">
                     0x57365d61e63972d9Ce11b91e3CD8D29605f8a792
