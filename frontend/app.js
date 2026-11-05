@@ -92,7 +92,7 @@ async function submitDiamond() {
 }
 
 function copyRefLink() {
-    const refLink = `https://t.me/your_bot_username/app?start=${user.id}`;
+    const refLink = `https://t.me/dotoflow_bot/app?start=${user.id}`;
     navigator.clipboard.writeText(refLink);
     alert("لینک دعوت شما کپی شد!");
 }
