@@ -1,5 +1,7 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from . import database
 
@@ -27,6 +29,14 @@ class WalletUpdate(BaseModel):
 class DiamondDeposit(BaseModel):
     user_id: int
     txid: str
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_home():
+    html_path = os.path.join(os.path.dirname(__file__), "index.html")
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>مینی‌اپ فعال است</h1>"
 
 @app.post("/api/init")
 def init_user(data: UserRegister):
