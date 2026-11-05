@@ -1,7 +1,8 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from . import database
 
@@ -30,13 +31,17 @@ class DiamondDeposit(BaseModel):
     user_id: int
     txid: str
 
-@app.get("/", response_class=HTMLResponse)
+# اتصال پوشه فرانت‌اند برای بارگذاری صحیح فایل‌ها
+frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
+if os.path.exists(frontend_path):
+    app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+
+@app.get("/")
 async def serve_home():
-    html_path = os.path.join(os.path.dirname(__file__), "index.html")
-    if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>مینی‌اپ فعال است</h1>"
+    index_file = os.path.join(frontend_path, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"status": "DTF Mini App Backend is running"}
 
 @app.post("/api/init")
 def init_user(data: UserRegister):
@@ -47,16 +52,13 @@ def init_user(data: UserRegister):
     user = cursor.fetchone()
     
     if not user:
-        # ثبت کاربر جدید با 1 امتیاز برنز
         cursor.execute("""
             INSERT INTO users (user_id, username, bronze_points, gold_points, diamond_points, deposit_status, referred_by) 
             VALUES (?, ?, 1, 0, 0, 'none', ?)
         """, (data.user_id, data.username, data.referrer_id))
         
-        # افزایش آمار کل برنز شبکه
         cursor.execute("UPDATE global_stats SET total_bronze_issued = total_bronze_issued + 1 WHERE id = 1")
         
-        # ثبت پاداش رفرال (امتیاز طلا برای معرف)
         if data.referrer_id and data.referrer_id != data.user_id:
             cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (data.referrer_id,))
             if cursor.fetchone():
@@ -67,10 +69,8 @@ def init_user(data: UserRegister):
         cursor.execute("SELECT * FROM users WHERE user_id = ?", (data.user_id,))
         user = cursor.fetchone()
 
-    # دریافت آمار کل شبکه
     cursor.execute("SELECT * FROM global_stats WHERE id = 1")
     stats = cursor.fetchone()
-    
     conn.close()
     
     return {
@@ -95,7 +95,6 @@ def update_wallet(data: WalletUpdate):
 def deposit_diamond(data: DiamondDeposit):
     conn = database.get_db()
     cursor = conn.cursor()
-    # ثبت وضعیت در انتظار و ذخیره هش تراکنش در صورت نیاز
     cursor.execute("UPDATE users SET deposit_status = 'pending' WHERE user_id = ?", (data.user_id,))
     conn.commit()
     conn.close()
