@@ -1,14 +1,14 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// تابع مستقیم برای مدیریت فعال شدن دکمه با تیک زدن
+// تابع بررسی وضعیت تیک و فعال‌سازی دکمه ورود
 function toggleAccept() {
     const checkbox = document.getElementById('accept-checkbox');
     const acceptBtn = document.getElementById('accept-btn');
     
     if (checkbox.checked) {
         acceptBtn.disabled = false;
-        acceptBtn.classList.remove('bg-slate-850', 'bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+        acceptBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
         acceptBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'text-slate-950', 'cursor-pointer');
     } else {
         acceptBtn.disabled = true;
