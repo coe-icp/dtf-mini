@@ -1,12 +1,31 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
+// کنترل چک‌باکس پاپ‌آپ اخطار
+const checkbox = document.getElementById('accept-checkbox');
+const acceptBtn = document.getElementById('accept-btn');
+
+checkbox.addEventListener('change', function() {
+    if (this.checked) {
+        acceptBtn.disabled = false;
+        acceptBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+        acceptBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'text-slate-950', 'cursor-pointer');
+    } else {
+        acceptBtn.disabled = true;
+        acceptBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'text-slate-950', 'cursor-pointer');
+        acceptBtn.classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+    }
+});
+
+function closeDisclaimer() {
+    if (!checkbox.checked) return;
+    document.getElementById('disclaimer-modal').style.display = 'none';
+}
+
 const user = tg.initDataUnsafe?.user || { id: 777888999, first_name: "کاربر تستی", username: "test_user" };
 document.getElementById('username-badge').innerText = user.first_name;
 
-// دریافت شناسه معرف از طریق استاندارد start_param تلگرام
 let referrerId = tg.initDataUnsafe?.start_param || null;
-
 const API_URL = "https://dtf-mini-production.up.railway.app"; 
 
 async function initApp() {
@@ -92,10 +111,16 @@ async function submitDiamond() {
 }
 
 function copyRefLink() {
-    // تولید لینک رفرال با فرمت استاندارد startapp
     const refLink = `https://t.me/dotoflow_bot/app?startapp=${user.id}`;
     navigator.clipboard.writeText(refLink);
     alert("لینک دعوت شما کپی شد!");
+}
+
+// تابع جدید برای کپی کردن آدرس کیف پول مقصد واریز
+function copyWalletAddress() {
+    const address = document.getElementById('wallet-address-text').innerText.trim();
+    navigator.clipboard.writeText(address);
+    alert("آدرس کیف پول مقصد کپی شد!");
 }
 
 initApp();
