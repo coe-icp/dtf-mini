@@ -1,9 +1,9 @@
 import os
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 from . import database
 
@@ -52,16 +52,20 @@ def init_user(data: UserRegister):
     user = cursor.fetchone()
     
     if not user:
+        # ثبت کاربر جدید
         cursor.execute("""
             INSERT INTO users (user_id, username, bronze_points, gold_points, diamond_points, deposit_status, referred_by) 
             VALUES (?, ?, 1, 0, 0, 'none', ?)
         """, (data.user_id, data.username, data.referrer_id))
         
+        # افزایش آمار کل برنز شبکه
         cursor.execute("UPDATE global_stats SET total_bronze_issued = total_bronze_issued + 1 WHERE id = 1")
         
+        # اعطای امتیاز طلا به معرف (اگر معرف معتبر باشد و خودش نباشد)
         if data.referrer_id and data.referrer_id != data.user_id:
             cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (data.referrer_id,))
-            if cursor.fetchone():
+            referrer = cursor.fetchone()
+            if referrer:
                 cursor.execute("UPDATE users SET gold_points = gold_points + 1 WHERE user_id = ?", (data.referrer_id,))
                 cursor.execute("UPDATE global_stats SET total_gold_issued = total_gold_issued + 1 WHERE id = 1")
                 
@@ -104,3 +108,77 @@ def deposit_diamond(data: DiamondDeposit):
     conn.commit()
     conn.close()
     return {"status": "pending"}
+
+# --- پنل ادمین برای مدیریت و تایید تراکنش‌های الماس ---
+@app.get("/admin", response_class=HTMLResponse)
+def admin_panel():
+    conn = database.get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE deposit_status = 'pending'")
+    pending_users = cursor.fetchall()
+    conn.close()
+
+    rows = ""
+    for u in pending_users:
+        rows += f"""
+        <tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 10px;">{u['user_id']}</td>
+            <td style="padding: 10px;">{u['username']}</td>
+            <td style="padding: 10px; font-family: monospace;">{u['evm_wallet']}</td>
+            <td style="padding: 10px;">
+                <form action="/admin/approve" method="POST" style="display:inline;">
+                    <input type="hidden" name="user_id" value="{u['user_id']}">
+                    <button type="submit" style="background: #10B981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">تایید و اعطای الماس ✅</button>
+                </form>
+            </td>
+        </tr>
+        """
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="fa" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <title>پنل مدیریت DTF</title>
+        <style>
+            body {{ background: #090d16; color: #fff; font-family: Tahoma, sans-serif; padding: 20px; }}
+            h2 {{ color: #38bdf8; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: #111827; border-radius: 8px; overflow: hidden; }}
+            th {{ background: #1f2937; padding: 12px; text-align: right; font-size: 14px; }}
+        </style>
+    </head>
+    <body>
+        <h2>💎 پنل مدیریت و تایید واریزی‌های الماس</h2>
+        <p>کاربرانی که درخواست واریز ثبت کرده‌اند و منتظر تایید هستند:</p>
+        <table>
+            <tr>
+                <th>شناسه کاربری (ID)</th>
+                <th>نام کاربری</th>
+                <th>آدرس کیف پول / هش تراکنش</th>
+                <th>عملیات</th>
+            </tr>
+            {rows if rows else '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #888;">هیچ درخواست در انتظاری وجود ندارد.</td></tr>'}
+        </table>
+    </body>
+    </html>
+    """
+    return html
+
+@app.post("/admin/approve")
+def admin_approve(user_id: int = Form(...)):
+    conn = database.get_db()
+    cursor = conn.cursor()
+    
+    # بررسی وضعیت کاربر برای اینکه الماس فقط یک‌بار داده شود
+    cursor.execute("SELECT diamond_points, deposit_status FROM users WHERE user_id = ?", (user_id,))
+    u = cursor.fetchone()
+    
+    if u and u['deposit_status'] != 'approved':
+        # تایید وضعیت و افزایش ۱ امتیاز الماس به کاربر
+        cursor.execute("UPDATE users SET deposit_status = 'approved', diamond_points = diamond_points + 1 WHERE user_id = ?", (user_id,))
+        # افزایش آمار کل الماس شبکه
+        cursor.execute("UPDATE global_stats SET total_diamond_issued = total_diamond_issued + 1 WHERE id = 1")
+        conn.commit()
+        
+    conn.close()
+    return HTMLResponse(content="<script>alert('با موفقیت تایید شد!'); window.location.href='/admin';</script>")
