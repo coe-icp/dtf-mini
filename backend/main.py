@@ -126,7 +126,7 @@ def deposit_diamond(data: DiamondDeposit):
     conn.close()
     return {"status": "pending"}
 
-# پنل مدیریت دو بخشی (تراکنش‌ها + جدول تفکیک امتیازات کاربران)
+# پنل مدیریت دو بخشی (تراکنش‌ها + جدول تفکیک امتیازات کاربران با هماهنگی کامل ظاهر تاریک)
 @app.get("/admin", response_class=HTMLResponse)
 def admin_panel(username: str = Depends(verify_admin)):
     conn = database.get_db()
@@ -154,12 +154,12 @@ def admin_panel(username: str = Depends(verify_admin)):
     for d in pending_deposits:
         safe_username = html.escape(d['username'] or 'بدون نام')
         pending_rows += f"""
-        <tr style="border-bottom: 1px solid #333;">
-            <td style="padding: 10px;">{d['user_id']}</td>
-            <td style="padding: 10px;">{safe_username}</td>
-            <td style="padding: 10px; font-family: monospace;">{d['evm_wallet'] or 'ثبت نشده'}</td>
-            <td style="padding: 10px; font-family: monospace; color: #38bdf8;">{d['txid']}</td>
-            <td style="padding: 10px;">
+        <tr style="border-bottom: 1px solid #1f2937;">
+            <td style="padding: 12px; color: #e2e8f0;">{d['user_id']}</td>
+            <td style="padding: 12px; color: #e2e8f0;">{safe_username}</td>
+            <td style="padding: 12px; font-family: monospace; color: #cbd5e1;">{d['evm_wallet'] or 'ثبت نشده'}</td>
+            <td style="padding: 12px; font-family: monospace; color: #38bdf8;">{d['txid']}</td>
+            <td style="padding: 12px;">
                 <form action="/admin/approve" method="POST" style="display:inline;">
                     <input type="hidden" name="deposit_id" value="{d['id']}">
                     <input type="hidden" name="user_id" value="{d['user_id']}">
@@ -175,15 +175,15 @@ def admin_panel(username: str = Depends(verify_admin)):
         safe_uname = html.escape(u['username'] or 'بدون نام')
         wallet_display = u['evm_wallet'] if u['evm_wallet'] else '<span style="color:#ef4444;">ثبت نشده</span>'
         users_rows += f"""
-        <tr style="border-bottom: 1px solid #222;">
-            <td style="padding: 8px;">{u['user_id']}</td>
-            <td style="padding: 8px;">{safe_uname}</td>
-            <td style="padding: 8px; font-family: monospace; font-size: 11px;">{wallet_display}</td>
-            <td style="padding: 8px; text-align: center; color: #fb923c; font-weight: bold;">{u['bronze_points']}</td>
-            <td style="padding: 8px; text-align: center; color: #fbbf24; font-weight: bold;">{u['gold_points']}</td>
-            <td style="padding: 8px; text-align: center; color: #38bdf8; font-weight: bold;">{u['diamond_points']}</td>
-            <td style="padding: 8px; text-align: center;">{u['deposit_status']}</td>
-            <td style="padding: 8px; text-align: center; font-size: 11px; color: #94a3b8;">{u['referred_by'] or 'ندارد'}</td>
+        <tr style="border-bottom: 1px solid #1f2937;">
+            <td style="padding: 10px; color: #e2e8f0;">{u['user_id']}</td>
+            <td style="padding: 10px; color: #e2e8f0;">{safe_uname}</td>
+            <td style="padding: 10px; font-family: monospace; font-size: 11px; color: #cbd5e1;">{wallet_display}</td>
+            <td style="padding: 10px; text-align: center; color: #fb923c; font-weight: bold;">{u['bronze_points']}</td>
+            <td style="padding: 10px; text-align: center; color: #fbbf24; font-weight: bold;">{u['gold_points']}</td>
+            <td style="padding: 10px; text-align: center; color: #38bdf8; font-weight: bold;">{u['diamond_points']}</td>
+            <td style="padding: 10px; text-align: center; color: #e2e8f0;">{u['deposit_status']}</td>
+            <td style="padding: 10px; text-align: center; font-size: 11px; color: #94a3b8;">{u['referred_by'] or 'ندارد'}</td>
         </tr>
         """
 
@@ -194,20 +194,20 @@ def admin_panel(username: str = Depends(verify_admin)):
         <meta charset="UTF-8">
         <title>پنل مدیریت DTF</title>
         <style>
-            body {{ background: #090d16; color: #fff; font-family: Tahoma, sans-serif; padding: 20px; }}
+            body {{ background: #090d16; color: #f8fafc; font-family: Tahoma, sans-serif; padding: 20px; }}
             h2, h3 {{ color: #38bdf8; }}
-            .section {{ background: #111827; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #1f2937; }}
+            .section {{ background: #111827; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #1f2937; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; background: #0b0f19; border-radius: 8px; overflow: hidden; }}
-            th {{ background: #1f2937; padding: 10px; text-align: right; font-size: 13px; }}
-            td {{ padding: 8px; font-size: 12px; }}
-            .btn-excel {{ background: #059669; color: white; padding: 10px 16px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 15px; }}
+            th {{ background: #1f2937; padding: 12px; text-align: right; font-size: 13px; color: #38bdf8; }}
+            .btn-excel {{ background: #059669; color: white; padding: 10px 16px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; transition: background 0.2s; }}
+            .btn-excel:hover {{ background: #047857; }}
         </style>
     </head>
     <body>
         <h2>💎 پنل مدیریت پلتفرم DTF</h2>
-        <p>تعداد کل کاربران ثبت‌شده: <strong>{total_users_count}</strong> نفر</p>
+        <p style="color: #94a3b8;">تعداد کل کاربران ثبت‌شده: <strong style="color: #f8fafc;">{total_users_count}</strong> نفر</p>
         
-        <a href="/admin/export-excel" class="btn-excel">📊 دانلود فایل CSV (پشتیبان)</a>
+        <a href="/admin/export-excel" class="btn-excel">📊 دانلود فایل خروجی اکسل (CSV)</a>
 
         <!-- بخش اول: درخواست‌های واریز الماس -->
         <div class="section">
@@ -220,7 +220,7 @@ def admin_panel(username: str = Depends(verify_admin)):
                     <th>هش تراکنش (TXID)</th>
                     <th>عملیات</th>
                 </tr>
-                {pending_rows if pending_rows else '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">هیچ درخواست در انتظاری وجود ندارد.</td></tr>'}
+                {pending_rows if pending_rows else '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #94a3b8;">هیچ درخواست در انتظاری وجود ندارد.</td></tr>'}
             </table>
         </div>
 
@@ -238,7 +238,7 @@ def admin_panel(username: str = Depends(verify_admin)):
                     <th style="text-align: center;">وضعیت واریز</th>
                     <th style="text-align: center;">معرف (Referrer)</th>
                 </tr>
-                {users_rows if users_rows else '<tr><td colspan="8" style="text-align:center; padding: 20px; color: #888;">هنوز کاربری ثبت‌نام نکرده است.</td></tr>'}
+                {users_rows if users_rows else '<tr><td colspan="8" style="text-align:center; padding: 20px; color: #94a3b8;">هنوز کاربری ثبت‌نام نکرده است.</td></tr>'}
             </table>
         </div>
     </body>
