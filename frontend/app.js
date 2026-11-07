@@ -1,10 +1,15 @@
 const tg = window.Telegram.WebApp;
+tg.ready();
 tg.expand();
 
+const API_URL = "https://dtf-mini-production.up.railway.app";
+const REF_BASE_LINK = "https://t.me/dotoflow_bot/app?startapp=";
+
+// ---------- پاپ‌آپ سلب مسئولیت ----------
 function toggleAccept() {
     const checkbox = document.getElementById('accept-checkbox');
     const acceptBtn = document.getElementById('accept-btn');
-    
+
     if (checkbox.checked) {
         acceptBtn.disabled = false;
         acceptBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
@@ -22,107 +27,180 @@ function closeDisclaimer() {
     document.getElementById('disclaimer-modal').style.display = 'none';
 }
 
+// ---------- اطلاعات کاربر ----------
+// خارج از تلگرام (فقط برای تست در مرورگر) کاربر تستی استفاده می‌شود
 const user = tg.initDataUnsafe?.user || { id: 777888999, first_name: "کاربر تستی", username: "test_user" };
 document.getElementById('username-badge').innerText = user.first_name;
 
-let referrerId = tg.initDataUnsafe?.start_param || null;
-const API_URL = "https://dtf-mini-production.up.railway.app"; 
+const initData = tg.initData || null;
+const referrerId = tg.initDataUnsafe?.start_param || null;
+
+// ---------- ارتباط با سرور ----------
+async function api(path, payload) {
+    const res = await fetch(`${API_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            init_data: initData,
+            user_id: user.id,
+            ...payload
+        })
+    });
+
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* پاسخ JSON نبود */ }
+
+    if (!res.ok) {
+        const msg = (data && typeof data.detail === 'string') ? data.detail : "خطا در ارتباط با سرور";
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+    }
+    return data;
+}
+
+function render(data) {
+    document.getElementById('my-bronze').innerText = data.user.bronze_points;
+    document.getElementById('my-gold').innerText = data.user.gold_points;
+    document.getElementById('my-diamond').innerText = data.user.diamond_points;
+
+    document.getElementById('global-bronze').innerText = data.global_stats.total_bronze;
+    document.getElementById('global-gold').innerText = data.global_stats.total_gold;
+    document.getElementById('global-diamond').innerText = data.global_stats.total_diamond;
+
+    document.getElementById('ref-count').innerText = data.referral_count;
+
+    // دکمه ادمین فقط برای ادمین
+    if (data.is_admin) {
+        document.getElementById('admin-box').classList.remove('hidden');
+    }
+
+    // کانال برنز (با ثبت کیف پول)
+    if (data.user.evm_wallet) {
+        document.getElementById('wallet-input').value = data.user.evm_wallet;
+        document.getElementById('wallet-input').disabled = true;
+        document.getElementById('save-wallet-btn').disabled = true;
+        document.getElementById('save-wallet-btn').classList.add('opacity-50', 'cursor-not-allowed');
+        document.getElementById('btn-bronze').classList.remove('hidden');
+        document.getElementById('btn-bronze').href = "https://t.me/boronzDTF";
+    }
+
+    // کانال طلا (حداقل ۱ امتیاز طلا)
+    if (data.user.gold_points > 0) {
+        document.getElementById('btn-gold').classList.remove('hidden');
+        document.getElementById('btn-gold').href = "https://t.me/talaDTF";
+    }
+
+    // کانال الماس و وضعیت واریز
+    const statusEl = document.getElementById('deposit-status-text');
+    if (data.user.deposit_status === 'approved' || data.user.diamond_points > 0) {
+        document.getElementById('btn-diamond').classList.remove('hidden');
+        document.getElementById('btn-diamond').href = "https://t.me/almasDTF";
+        statusEl.innerText = "وضعیت: تایید شده ✅ (دسترسی به کانال الماس فعال شد)";
+        statusEl.className = "text-[11px] text-center text-emerald-400 mt-1";
+    } else if (data.user.deposit_status === 'pending') {
+        statusEl.innerText = "وضعیت: در انتظار بررسی ادمین ⏳";
+        statusEl.className = "text-[11px] text-center text-amber-400 mt-1";
+    } else {
+        statusEl.innerText = "";
+    }
+}
 
 async function initApp() {
     try {
-        const response = await fetch(`${API_URL}/api/init`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: user.id,
-                username: user.username || user.first_name,
-                referrer_id: referrerId ? parseInt(referrerId) : null
-            })
+        const data = await api('/api/init', {
+            username: user.username || user.first_name,
+            referrer_id: referrerId && /^\d+$/.test(referrerId) ? parseInt(referrerId, 10) : null
         });
-        const data = await response.json();
-        
-        document.getElementById('my-bronze').innerText = data.user.bronze_points;
-        document.getElementById('my-gold').innerText = data.user.gold_points;
-        document.getElementById('my-diamond').innerText = data.user.diamond_points;
-
-        document.getElementById('global-bronze').innerText = data.global_stats.total_bronze;
-        document.getElementById('global-gold').innerText = data.global_stats.total_gold;
-        document.getElementById('global-diamond').innerText = data.global_stats.total_diamond;
-
-        // دکمه کانال برنز (با ثبت کیف پول)
-        if (data.user.evm_wallet) {
-            document.getElementById('wallet-input').value = data.user.evm_wallet;
-            document.getElementById('wallet-input').disabled = true;
-            document.getElementById('btn-bronze').classList.remove('hidden');
-            document.getElementById('btn-bronze').href = "https://t.me/boronzDTF";
-        }
-
-        // دکمه کانال طلا (با داشتن حداقل ۱ امتیاز طلا از رفرال)
-        if (data.user.gold_points > 0) {
-            document.getElementById('btn-gold').classList.remove('hidden');
-            document.getElementById('btn-gold').href = "https://t.me/talaDTF";
-        }
-
-        // دکمه کانال الماس (پس از تایید ادمین و دریافت امتیاز الماس)
-        if (data.user.deposit_status === 'approved' || data.user.diamond_points > 0) {
-            document.getElementById('btn-diamond').classList.remove('hidden');
-            document.getElementById('btn-diamond').href = "https://t.me/almasDTF";
-            document.getElementById('deposit-status-text').innerText = "وضعیت: تایید شده ✅ (دسترسی به کانال الماس فعال شد)";
-            document.getElementById('deposit-status-text').className = "text-[11px] text-center text-emerald-400 mt-1";
-        } else if (data.user.deposit_status === 'pending') {
-            document.getElementById('deposit-status-text').innerText = "وضعیت: در انتظار بررسی ادمین ⏳";
-            document.getElementById('deposit-status-text').className = "text-[11px] text-center text-amber-400 mt-1";
-        }
-
+        render(data);
     } catch (err) {
         console.error("خطا در ارتباط با سرور:", err);
+        if (err.status === 401) {
+            alert(err.message);
+        }
     }
 }
 
+// ---------- کیف پول ----------
 async function saveWallet() {
     const wallet = document.getElementById('wallet-input').value.trim();
-    if (!wallet.startsWith("0x") || wallet.length < 40) {
-        alert("لطفا یک آدرس معتبر EVM وارد کنید.");
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+        alert("لطفا یک آدرس معتبر EVM وارد کنید (با 0x شروع شود و ۴۲ کاراکتر باشد).");
         return;
     }
-    
-    await fetch(`${API_URL}/api/wallet`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, wallet: wallet })
-    });
-    
-    alert("کیف پول با موفقیت ثبت شد!");
-    location.reload();
+
+    try {
+        await api('/api/wallet', { wallet: wallet });
+        alert("کیف پول با موفقیت ثبت شد!");
+        await initApp();
+    } catch (err) {
+        alert(err.message);
+    }
 }
 
+// ---------- واریز الماس ----------
 async function submitDiamond() {
     const txid = document.getElementById('txid-input').value.trim();
-    if (!txid) {
-        alert("لطفا کد تراکنش را وارد کنید.");
+    if (!/^0x[a-fA-F0-9]{64}$/.test(txid)) {
+        alert("هش تراکنش معتبر نیست. باید با 0x شروع شود و ۶۶ کاراکتر باشد.");
         return;
     }
 
-    await fetch(`${API_URL}/api/deposit-diamond`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, txid: txid })
-    });
-
-    alert("رسید شما با موفقیت ثبت شد و پس از بررسی ادمین تایید خواهد شد.");
-    location.reload();
+    try {
+        await api('/api/deposit-diamond', { txid: txid });
+        alert("رسید شما با موفقیت ثبت شد و پس از بررسی ادمین تایید خواهد شد.");
+        document.getElementById('txid-input').value = "";
+        await initApp();
+    } catch (err) {
+        alert(err.message);
+    }
 }
 
-function copyRefLink() {
-    const refLink = `https://t.me/dotoflow_bot/app?startapp=${user.id}`;
-    navigator.clipboard.writeText(refLink);
+// ---------- کپی ----------
+function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    }
+    fallbackCopy(text);
+    return Promise.resolve();
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+    document.body.removeChild(ta);
+}
+
+async function copyRefLink() {
+    await copyText(`${REF_BASE_LINK}${user.id}`);
     alert("لینک دعوت شما کپی شد!");
 }
 
-function copyWalletAddress() {
+async function copyWalletAddress() {
     const address = document.getElementById('wallet-address-text').innerText.trim();
-    navigator.clipboard.writeText(address);
+    await copyText(address);
     alert("آدرس کیف پول مقصد کپی شد!");
 }
 
+// ---------- پنل ادمین (در مرورگر بیرونی باز می‌شود تا دانلود و لاگین درست کار کند) ----------
+function openAdmin() {
+    const url = `${API_URL}/admin`;
+    if (tg.openLink) {
+        tg.openLink(url);
+    } else {
+        window.open(url, '_blank');
+    }
+}
+
+// ---------- شروع ----------
 initApp();
+
+// وقتی کاربر به مینی‌اپ برمی‌گردد، امتیازها بروز شوند (مثلاً بعد از دعوت موفق)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') initApp();
+});
