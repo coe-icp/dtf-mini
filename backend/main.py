@@ -1,13 +1,14 @@
 import os
+import io
+import csv
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 from . import database
 
-# اول متغیر app تعریف می‌شود
 app = FastAPI()
 
 app.add_middleware(
@@ -53,6 +54,7 @@ def init_user(data: UserRegister):
     user = cursor.fetchone()
     
     if not user:
+        # کاربر جدید با ۱ امتیاز برنز ثبت می‌شود
         cursor.execute("""
             INSERT INTO users (user_id, username, bronze_points, gold_points, diamond_points, deposit_status, referred_by) 
             VALUES (?, ?, 1, 0, 0, 'none', ?)
@@ -60,6 +62,7 @@ def init_user(data: UserRegister):
         
         cursor.execute("UPDATE global_stats SET total_bronze_issued = total_bronze_issued + 1 WHERE id = 1")
         
+        # ثبت پاداش رفرال (اعطای ۱ امتیاز طلا به معرف)
         if data.referrer_id and data.referrer_id != data.user_id:
             cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (data.referrer_id,))
             referrer_exists = cursor.fetchone()
@@ -108,12 +111,16 @@ def deposit_diamond(data: DiamondDeposit):
     conn.close()
     return {"status": "pending"}
 
+# پنل مدیریت جامع با قابلیت تایید و دانلود فایل اکسل
 @app.get("/admin", response_class=HTMLResponse)
 def admin_panel():
     conn = database.get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE deposit_status = 'pending'")
     pending_users = cursor.fetchall()
+    
+    cursor.execute("SELECT COUNT(*) as total FROM users")
+    total_users_count = cursor.fetchone()['total']
     conn.close()
 
     rows = ""
@@ -141,13 +148,18 @@ def admin_panel():
         <style>
             body {{ background: #090d16; color: #fff; font-family: Tahoma, sans-serif; padding: 20px; }}
             h2 {{ color: #38bdf8; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: #111827; border-radius: 8px; overflow: hidden; }}
+            .btn-excel {{ background: #059669; color: white; padding: 10px 16px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; background: #111827; border-radius: 8px; overflow: hidden; }}
             th {{ background: #1f2937; padding: 12px; text-align: right; font-size: 14px; }}
         </style>
     </head>
     <body>
-        <h2>💎 پنل مدیریت و تایید واریزی‌های الماس</h2>
-        <p>کاربرانی که درخواست واریز ثبت کرده‌اند و منتظر تایید هستند:</p>
+        <h2>💎 پنل مدیریت پلتفرم DTF</h2>
+        <p>تعداد کل کاربران ثبت‌شده: <strong>{total_users_count}</strong> نفر</p>
+        
+        <a href="/admin/export-excel" class="btn-excel">📊 دانلود خروجی اکسل (CSV) جهت محاسبات ایردراپ</a>
+
+        <h3 style="color: #f59e0b; margin-top: 20px;">درخواست‌های واریز الماس در انتظار تایید:</h3>
         <table>
             <tr>
                 <th>شناسه کاربری (ID)</th>
@@ -177,3 +189,36 @@ def admin_approve(user_id: int = Form(...)):
         
     conn.close()
     return HTMLResponse(content="<script>alert('با موفقیت تایید شد!'); window.location.href='/admin';</script>")
+
+# خروجی فایل اکسل کامل کاربران و امتیازات
+@app.get("/admin/export-excel")
+def export_excel():
+    conn = database.get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, username, evm_wallet, bronze_points, gold_points, diamond_points, deposit_status FROM users")
+    users = cursor.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # سربرگ فایل اکسل
+    writer.writerow(['User ID', 'Username', 'EVM Wallet', 'Bronze Points', 'Gold Points', 'Diamond Points', 'Deposit Status'])
+    
+    for u in users:
+        writer.writerow([
+            u['user_id'],
+            u['username'],
+            u['evm_wallet'] if u['evm_wallet'] else 'ثبت نشده',
+            u['bronze_points'],
+            u['gold_points'],
+            u['diamond_points'],
+            u['deposit_status']
+        ])
+    
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=dtf_users_airdrop_data.csv"}
+    )
