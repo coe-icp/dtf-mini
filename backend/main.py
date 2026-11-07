@@ -1,6 +1,7 @@
 import os
 import io
 import csv
+import html
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Form, Depends, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -24,9 +25,9 @@ database.init_db()
 
 security = HTTPBasic()
 
-# تنظیمات رمز عبور ادمین (می‌توانید تغییر دهید)
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "dtf_secure_password_2026"
+# خواندن نام کاربری و رمز عبور از متغیرهای محیطی Railway (با مقادیر پیش‌فرض امن)
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "dtf_secure_password_2026")
 
 def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = credentials.username == ADMIN_USERNAME
@@ -72,7 +73,7 @@ def init_user(data: UserRegister):
     user = cursor.fetchone()
     
     if not user:
-        # ثبت کاربر جدید
+        # ثبت کاربر جدید و تخصیص ۱ امتیاز برنز
         cursor.execute("""
             INSERT INTO users (user_id, username, bronze_points, gold_points, diamond_points, deposit_status, referred_by) 
             VALUES (?, ?, 1, 0, 0, 'none', ?)
@@ -80,7 +81,7 @@ def init_user(data: UserRegister):
         
         cursor.execute("UPDATE global_stats SET total_bronze_issued = total_bronze_issued + 1 WHERE id = 1")
         
-        # اعطای امتیاز طلا به معرف در صورت وجود
+        # اعطای امتیاز طلا به معرف در صورت معتبر بودن
         if data.referrer_id and data.referrer_id != data.user_id:
             cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (data.referrer_id,))
             referrer_exists = cursor.fetchone()
@@ -119,45 +120,53 @@ def update_wallet(data: WalletUpdate):
 def deposit_diamond(data: DiamondDeposit):
     conn = database.get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE users 
-        SET deposit_status = CASE WHEN deposit_status != 'approved' THEN 'pending' ELSE deposit_status END,
-            evm_wallet = COALESCE(evm_wallet, ?) 
-        WHERE user_id = ?
-    """, (data.txid, data.user_id))
-    conn.commit()
+    try:
+        cursor.execute("INSERT INTO deposits (user_id, txid, status) VALUES (?, ?, 'pending')", (data.user_id, data.txid))
+        cursor.execute("UPDATE users SET deposit_status = 'pending' WHERE user_id = ?", (data.user_id,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass # اگر تراکنش تکراری بود خطا ندهد
     conn.close()
     return {"status": "pending"}
 
-# پنل مدیریت محافظت‌شده با نام کاربری و رمز عبور
 @app.get("/admin", response_class=HTMLResponse)
 def admin_panel(username: str = Depends(verify_admin)):
     conn = database.get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE deposit_status = 'pending'")
-    pending_users = cursor.fetchall()
+    
+    # دریافت درخواست‌های در انتظار از جدول deposits
+    cursor.execute("""
+        SELECT deposits.id, deposits.user_id, users.username, users.evm_wallet, deposits.txid 
+        FROM deposits 
+        JOIN users ON deposits.user_id = users.user_id 
+        WHERE deposits.status = 'pending'
+    """)
+    pending_deposits = cursor.fetchall()
     
     cursor.execute("SELECT COUNT(*) as total FROM users")
     total_users_count = cursor.fetchone()['total']
     conn.close()
 
     rows = ""
-    for u in pending_users:
+    for d in pending_deposits:
+        safe_username = html.escape(d['username'] or 'بدون نام')
         rows += f"""
         <tr style="border-bottom: 1px solid #333;">
-            <td style="padding: 10px;">{u['user_id']}</td>
-            <td style="padding: 10px;">{u['username']}</td>
-            <td style="padding: 10px; font-family: monospace;">{u['evm_wallet'] or 'ثبت نشده'}</td>
+            <td style="padding: 10px;">{d['user_id']}</td>
+            <td style="padding: 10px;">{safe_username}</td>
+            <td style="padding: 10px; font-family: monospace;">{d['evm_wallet'] or 'ثبت نشده'}</td>
+            <td style="padding: 10px; font-family: monospace; color: #38bdf8;">{d['txid']}</td>
             <td style="padding: 10px;">
                 <form action="/admin/approve" method="POST" style="display:inline;">
-                    <input type="hidden" name="user_id" value="{u['user_id']}">
+                    <input type="hidden" name="deposit_id" value="{d['id']}">
+                    <input type="hidden" name="user_id" value="{d['user_id']}">
                     <button type="submit" style="background: #10B981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">تایید و اعطای الماس ✅</button>
                 </form>
             </td>
         </tr>
         """
 
-    html = f"""
+    html_content = f"""
     <!DOCTYPE html>
     <html lang="fa" dir="rtl">
     <head>
@@ -182,25 +191,27 @@ def admin_panel(username: str = Depends(verify_admin)):
             <tr>
                 <th>شناسه کاربری (ID)</th>
                 <th>نام کاربری</th>
-                <th>آدرس کیف پول / هش تراکنش</th>
+                <th>کیف پول ثبت شده</th>
+                <th>هش تراکنش (TXID)</th>
                 <th>عملیات</th>
             </tr>
-            {rows if rows else '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #888;">هیچ درخواست در انتظاری وجود ندارد.</td></tr>'}
+            {rows if rows else '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">هیچ درخواست در انتظاری وجود ندارد.</td></tr>'}
         </table>
     </body>
     </html>
     """
-    return html
+    return html_content
 
 @app.post("/admin/approve")
-def admin_approve(user_id: int = Form(...), username: str = Depends(verify_admin)):
+def admin_approve(deposit_id: int = Form(...), user_id: int = Form(...), username: str = Depends(verify_admin)):
     conn = database.get_db()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT diamond_points, deposit_status FROM users WHERE user_id = ?", (user_id,))
-    u = cursor.fetchone()
+    cursor.execute("SELECT status FROM deposits WHERE id = ?", (deposit_id,))
+    dep = cursor.fetchone()
     
-    if u and u['deposit_status'] != 'approved':
+    if dep and dep['status'] == 'pending':
+        cursor.execute("UPDATE deposits SET status = 'approved' WHERE id = ?", (deposit_id,))
         cursor.execute("UPDATE users SET deposit_status = 'approved', diamond_points = diamond_points + 1 WHERE user_id = ?", (user_id,))
         cursor.execute("UPDATE global_stats SET total_diamond_issued = total_diamond_issued + 1 WHERE id = 1")
         conn.commit()
@@ -222,14 +233,19 @@ def export_excel(username: str = Depends(verify_admin)):
     writer.writerow(['User ID', 'Username', 'EVM Wallet', 'Bronze Points', 'Gold Points', 'Diamond Points', 'Deposit Status', 'Referred By'])
     
     for u in users:
+        # خنثیسازی فرمول‌های اکسل برای امنیت فایل CSV
+        uname = str(u['username'] or '')
+        if uname.startswith(('=', '+', '-', '@')):
+            uname = "'" + uname
+            
         writer.writerow([
-            u['user_id'] or '',
-            u['username'] or '',
+            u['user_id'],
+            uname,
             u['evm_wallet'] if u['evm_wallet'] else 'ثبت نشده',
-            u['bronze_points'] or 0,
-            u['gold_points'] or 0,
-            u['diamond_points'] or 0,
-            u['deposit_status'] or 'none',
+            u['bronze_points'],
+            u['gold_points'],
+            u['diamond_points'],
+            u['deposit_status'],
             u['referred_by'] or 'ندارد'
         ])
     
