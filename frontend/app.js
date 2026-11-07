@@ -1,7 +1,6 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// تابع بررسی وضعیت تیک و فعال‌سازی دکمه ورود
 function toggleAccept() {
     const checkbox = document.getElementById('accept-checkbox');
     const acceptBtn = document.getElementById('accept-btn');
@@ -50,6 +49,7 @@ async function initApp() {
         document.getElementById('global-gold').innerText = data.global_stats.total_gold;
         document.getElementById('global-diamond').innerText = data.global_stats.total_diamond;
 
+        // دکمه کانال برنز (با ثبت کیف پول)
         if (data.user.evm_wallet) {
             document.getElementById('wallet-input').value = data.user.evm_wallet;
             document.getElementById('wallet-input').disabled = true;
@@ -57,15 +57,17 @@ async function initApp() {
             document.getElementById('btn-bronze').href = "https://t.me/boronzDTF";
         }
 
+        // دکمه کانال طلا (با داشتن حداقل ۱ امتیاز طلا از رفرال)
         if (data.user.gold_points > 0) {
             document.getElementById('btn-gold').classList.remove('hidden');
             document.getElementById('btn-gold').href = "https://t.me/talaDTF";
         }
 
-        if (data.user.deposit_status === 'approved') {
+        // دکمه کانال الماس (پس از تایید ادمین و دریافت امتیاز الماس)
+        if (data.user.deposit_status === 'approved' || data.user.diamond_points > 0) {
             document.getElementById('btn-diamond').classList.remove('hidden');
             document.getElementById('btn-diamond').href = "https://t.me/almasDTF";
-            document.getElementById('deposit-status-text').innerText = "وضعیت: تایید شده ✅";
+            document.getElementById('deposit-status-text').innerText = "وضعیت: تایید شده ✅ (دسترسی به کانال الماس فعال شد)";
             document.getElementById('deposit-status-text').className = "text-[11px] text-center text-emerald-400 mt-1";
         } else if (data.user.deposit_status === 'pending') {
             document.getElementById('deposit-status-text').innerText = "وضعیت: در انتظار بررسی ادمین ⏳";
