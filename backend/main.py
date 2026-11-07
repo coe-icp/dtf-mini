@@ -25,7 +25,6 @@ database.init_db()
 
 security = HTTPBasic()
 
-# خواندن نام کاربری و رمز عبور از متغیرهای محیطی Railway (با مقادیر پیش‌فرض امن)
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "dtf_secure_password_2026")
 
@@ -73,7 +72,6 @@ def init_user(data: UserRegister):
     user = cursor.fetchone()
     
     if not user:
-        # ثبت کاربر جدید و تخصیص ۱ امتیاز برنز
         cursor.execute("""
             INSERT INTO users (user_id, username, bronze_points, gold_points, diamond_points, deposit_status, referred_by) 
             VALUES (?, ?, 1, 0, 0, 'none', ?)
@@ -81,7 +79,6 @@ def init_user(data: UserRegister):
         
         cursor.execute("UPDATE global_stats SET total_bronze_issued = total_bronze_issued + 1 WHERE id = 1")
         
-        # اعطای امتیاز طلا به معرف در صورت معتبر بودن
         if data.referrer_id and data.referrer_id != data.user_id:
             cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (data.referrer_id,))
             referrer_exists = cursor.fetchone()
@@ -125,16 +122,17 @@ def deposit_diamond(data: DiamondDeposit):
         cursor.execute("UPDATE users SET deposit_status = 'pending' WHERE user_id = ?", (data.user_id,))
         conn.commit()
     except sqlite3.IntegrityError:
-        pass # اگر تراکنش تکراری بود خطا ندهد
+        pass
     conn.close()
     return {"status": "pending"}
 
+# پنل مدیریت دو بخشی (تراکنش‌ها + جدول تفکیک امتیازات کاربران)
 @app.get("/admin", response_class=HTMLResponse)
 def admin_panel(username: str = Depends(verify_admin)):
     conn = database.get_db()
     cursor = conn.cursor()
     
-    # دریافت درخواست‌های در انتظار از جدول deposits
+    # 1. درخواست‌های در انتظار
     cursor.execute("""
         SELECT deposits.id, deposits.user_id, users.username, users.evm_wallet, deposits.txid 
         FROM deposits 
@@ -143,14 +141,19 @@ def admin_panel(username: str = Depends(verify_admin)):
     """)
     pending_deposits = cursor.fetchall()
     
+    # 2. لیست تمام کاربران برای مشاهده امتیازات
+    cursor.execute("SELECT user_id, username, evm_wallet, bronze_points, gold_points, diamond_points, deposit_status, referred_by FROM users")
+    all_users = cursor.fetchall()
+    
     cursor.execute("SELECT COUNT(*) as total FROM users")
     total_users_count = cursor.fetchone()['total']
     conn.close()
 
-    rows = ""
+    # ردیف‌های جدول درخواست‌های الماس
+    pending_rows = ""
     for d in pending_deposits:
         safe_username = html.escape(d['username'] or 'بدون نام')
-        rows += f"""
+        pending_rows += f"""
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 10px;">{d['user_id']}</td>
             <td style="padding: 10px;">{safe_username}</td>
@@ -166,6 +169,24 @@ def admin_panel(username: str = Depends(verify_admin)):
         </tr>
         """
 
+    # ردیف‌های جدول کل کاربران و امتیازات
+    users_rows = ""
+    for u in all_users:
+        safe_uname = html.escape(u['username'] or 'بدون نام')
+        wallet_display = u['evm_wallet'] if u['evm_wallet'] else '<span style="color:#ef4444;">ثبت نشده</span>'
+        users_rows += f"""
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 8px;">{u['user_id']}</td>
+            <td style="padding: 8px;">{safe_uname}</td>
+            <td style="padding: 8px; font-family: monospace; font-size: 11px;">{wallet_display}</td>
+            <td style="padding: 8px; text-align: center; color: #fb923c; font-weight: bold;">{u['bronze_points']}</td>
+            <td style="padding: 8px; text-align: center; color: #fbbf24; font-weight: bold;">{u['gold_points']}</td>
+            <td style="padding: 8px; text-align: center; color: #38bdf8; font-weight: bold;">{u['diamond_points']}</td>
+            <td style="padding: 8px; text-align: center;">{u['deposit_status']}</td>
+            <td style="padding: 8px; text-align: center; font-size: 11px; color: #94a3b8;">{u['referred_by'] or 'ندارد'}</td>
+        </tr>
+        """
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="fa" dir="rtl">
@@ -174,29 +195,52 @@ def admin_panel(username: str = Depends(verify_admin)):
         <title>پنل مدیریت DTF</title>
         <style>
             body {{ background: #090d16; color: #fff; font-family: Tahoma, sans-serif; padding: 20px; }}
-            h2 {{ color: #38bdf8; }}
-            .btn-excel {{ background: #059669; color: white; padding: 10px 16px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; background: #111827; border-radius: 8px; overflow: hidden; }}
-            th {{ background: #1f2937; padding: 12px; text-align: right; font-size: 14px; }}
+            h2, h3 {{ color: #38bdf8; }}
+            .section {{ background: #111827; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #1f2937; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; background: #0b0f19; border-radius: 8px; overflow: hidden; }}
+            th {{ background: #1f2937; padding: 10px; text-align: right; font-size: 13px; }}
+            td {{ padding: 8px; font-size: 12px; }}
+            .btn-excel {{ background: #059669; color: white; padding: 10px 16px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 15px; }}
         </style>
     </head>
     <body>
         <h2>💎 پنل مدیریت پلتفرم DTF</h2>
         <p>تعداد کل کاربران ثبت‌شده: <strong>{total_users_count}</strong> نفر</p>
         
-        <a href="/admin/export-excel" class="btn-excel">📊 دانلود خروجی اکسل (CSV) جهت محاسبات ایردراپ</a>
+        <a href="/admin/export-excel" class="btn-excel">📊 دانلود فایل CSV (پشتیبان)</a>
 
-        <h3 style="color: #f59e0b; margin-top: 20px;">درخواست‌های واریز الماس در انتظار تایید:</h3>
-        <table>
-            <tr>
-                <th>شناسه کاربری (ID)</th>
-                <th>نام کاربری</th>
-                <th>کیف پول ثبت شده</th>
-                <th>هش تراکنش (TXID)</th>
-                <th>عملیات</th>
-            </tr>
-            {rows if rows else '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">هیچ درخواست در انتظاری وجود ندارد.</td></tr>'}
-        </table>
+        <!-- بخش اول: درخواست‌های واریز الماس -->
+        <div class="section">
+            <h3 style="color: #f59e0b; margin-top: 0;">⏳ درخواست‌های واریز الماس در انتظار تایید</h3>
+            <table>
+                <tr>
+                    <th>شناسه کاربری (ID)</th>
+                    <th>نام کاربری</th>
+                    <th>کیف پول ثبت شده</th>
+                    <th>هش تراکنش (TXID)</th>
+                    <th>عملیات</th>
+                </tr>
+                {pending_rows if pending_rows else '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">هیچ درخواست در انتظاری وجود ندارد.</td></tr>'}
+            </table>
+        </div>
+
+        <!-- بخش دوم: مشاهده تفکیک امتیازات و کیف پول تمام کاربران -->
+        <div class="section">
+            <h3 style="color: #38bdf8; margin-top: 0;">👥 لیست کامل کاربران و امتیازات به تفکیک (جهت محاسبات ایردراپ)</h3>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>نام کاربری</th>
+                    <th>کیف پول EVM</th>
+                    <th style="text-align: center;">برنز</th>
+                    <th style="text-align: center;">طلا</th>
+                    <th style="text-align: center;">الماس</th>
+                    <th style="text-align: center;">وضعیت واریز</th>
+                    <th style="text-align: center;">معرف (Referrer)</th>
+                </tr>
+                {users_rows if users_rows else '<tr><td colspan="8" style="text-align:center; padding: 20px; color: #888;">هنوز کاربری ثبت‌نام نکرده است.</td></tr>'}
+            </table>
+        </div>
     </body>
     </html>
     """
@@ -233,7 +277,6 @@ def export_excel(username: str = Depends(verify_admin)):
     writer.writerow(['User ID', 'Username', 'EVM Wallet', 'Bronze Points', 'Gold Points', 'Diamond Points', 'Deposit Status', 'Referred By'])
     
     for u in users:
-        # خنثیسازی فرمول‌های اکسل برای امنیت فایل CSV
         uname = str(u['username'] or '')
         if uname.startswith(('=', '+', '-', '@')):
             uname = "'" + uname
