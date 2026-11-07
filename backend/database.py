@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "database.db")
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "database.db"))
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -26,6 +26,17 @@ def init_db():
         )
     ''')
     
+    # جدول تراکنش‌ها و رسیدهای الماس (جدا از کیف پول اصلی)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS deposits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            txid TEXT UNIQUE,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     # جدول آمار کل شبکه
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS global_stats (
@@ -36,7 +47,7 @@ def init_db():
         )
     ''')
     
-    # مقداردهی اولیه آمار کل شبکه اگر وجود نداشته باشد
+    # مقداردهی اولیه آمار کل شبکه
     cursor.execute('''
         INSERT OR IGNORE INTO global_stats (id, total_bronze_issued, total_gold_issued, total_diamond_issued)
         VALUES (1, 0, 0, 0)
