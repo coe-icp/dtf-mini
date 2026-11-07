@@ -39,7 +39,7 @@ database.init_db()
 security = HTTPBasic()
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "dtf_secure_password_2026")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 INIT_DATA_MAX_AGE = 24 * 60 * 60  # اعتبار initData: ۲۴ ساعت
 
