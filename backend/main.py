@@ -2,7 +2,8 @@ import os
 import io
 import csv
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Form
+from fastapi import FastAPI, HTTPException, Form, Depends, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
@@ -20,6 +21,23 @@ app.add_middleware(
 )
 
 database.init_db()
+
+security = HTTPBasic()
+
+# تنظیمات رمز عبور ادمین (می‌توانید تغییر دهید)
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "dtf_secure_password_2026"
+
+def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = credentials.username == ADMIN_USERNAME
+    correct_password = credentials.password == ADMIN_PASSWORD
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="نام کاربری یا رمز عبور اشتباه است",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 class UserRegister(BaseModel):
     user_id: int
@@ -54,7 +72,7 @@ def init_user(data: UserRegister):
     user = cursor.fetchone()
     
     if not user:
-        # کاربر جدید با ۱ امتیاز برنز ثبت می‌شود
+        # ثبت کاربر جدید
         cursor.execute("""
             INSERT INTO users (user_id, username, bronze_points, gold_points, diamond_points, deposit_status, referred_by) 
             VALUES (?, ?, 1, 0, 0, 'none', ?)
@@ -62,7 +80,7 @@ def init_user(data: UserRegister):
         
         cursor.execute("UPDATE global_stats SET total_bronze_issued = total_bronze_issued + 1 WHERE id = 1")
         
-        # ثبت پاداش رفرال (اعطای ۱ امتیاز طلا به معرف)
+        # اعطای امتیاز طلا به معرف در صورت وجود
         if data.referrer_id and data.referrer_id != data.user_id:
             cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (data.referrer_id,))
             referrer_exists = cursor.fetchone()
@@ -111,9 +129,9 @@ def deposit_diamond(data: DiamondDeposit):
     conn.close()
     return {"status": "pending"}
 
-# پنل مدیریت جامع با قابلیت تایید و دانلود فایل اکسل
+# پنل مدیریت محافظت‌شده با نام کاربری و رمز عبور
 @app.get("/admin", response_class=HTMLResponse)
-def admin_panel():
+def admin_panel(username: str = Depends(verify_admin)):
     conn = database.get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE deposit_status = 'pending'")
@@ -129,7 +147,7 @@ def admin_panel():
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 10px;">{u['user_id']}</td>
             <td style="padding: 10px;">{u['username']}</td>
-            <td style="padding: 10px; font-family: monospace;">{u['evm_wallet']}</td>
+            <td style="padding: 10px; font-family: monospace;">{u['evm_wallet'] or 'ثبت نشده'}</td>
             <td style="padding: 10px;">
                 <form action="/admin/approve" method="POST" style="display:inline;">
                     <input type="hidden" name="user_id" value="{u['user_id']}">
@@ -175,7 +193,7 @@ def admin_panel():
     return html
 
 @app.post("/admin/approve")
-def admin_approve(user_id: int = Form(...)):
+def admin_approve(user_id: int = Form(...), username: str = Depends(verify_admin)):
     conn = database.get_db()
     cursor = conn.cursor()
     
@@ -190,30 +208,29 @@ def admin_approve(user_id: int = Form(...)):
     conn.close()
     return HTMLResponse(content="<script>alert('با موفقیت تایید شد!'); window.location.href='/admin';</script>")
 
-# خروجی فایل اکسل کامل کاربران و امتیازات
 @app.get("/admin/export-excel")
-def export_excel():
+def export_excel(username: str = Depends(verify_admin)):
     conn = database.get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, username, evm_wallet, bronze_points, gold_points, diamond_points, deposit_status FROM users")
+    cursor.execute("SELECT user_id, username, evm_wallet, bronze_points, gold_points, diamond_points, deposit_status, referred_by FROM users")
     users = cursor.fetchall()
     conn.close()
 
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # سربرگ فایل اکسل
-    writer.writerow(['User ID', 'Username', 'EVM Wallet', 'Bronze Points', 'Gold Points', 'Diamond Points', 'Deposit Status'])
+    writer.writerow(['User ID', 'Username', 'EVM Wallet', 'Bronze Points', 'Gold Points', 'Diamond Points', 'Deposit Status', 'Referred By'])
     
     for u in users:
         writer.writerow([
-            u['user_id'],
-            u['username'],
+            u['user_id'] or '',
+            u['username'] or '',
             u['evm_wallet'] if u['evm_wallet'] else 'ثبت نشده',
-            u['bronze_points'],
-            u['gold_points'],
-            u['diamond_points'],
-            u['deposit_status']
+            u['bronze_points'] or 0,
+            u['gold_points'] or 0,
+            u['diamond_points'] or 0,
+            u['deposit_status'] or 'none',
+            u['referred_by'] or 'ندارد'
         ])
     
     output.seek(0)
